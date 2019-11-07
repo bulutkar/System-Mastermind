@@ -57,6 +57,13 @@ struct scull_dev {
 
 struct scull_dev *scull_devices;
 
+/*char mmind_number[4];
+module_param_array(mmind_number, char, NULL, 0);*/
+char *mmind_number = "4283";
+module_param(mmind_number, charp, 0);
+
+int result_index = 0;
+char result[256][16];
 
 int scull_trim(struct scull_dev *dev)
 {
@@ -80,6 +87,7 @@ int scull_trim(struct scull_dev *dev)
 int scull_open(struct inode *inode, struct file *filp)
 {
     struct scull_dev *dev;
+    //printk(KERN_EMERG "start of scull_open\n");
 
     dev = container_of(inode->i_cdev, struct scull_dev, cdev);
     filp->private_data = dev;
@@ -91,6 +99,7 @@ int scull_open(struct inode *inode, struct file *filp)
         scull_trim(dev);
         up(&dev->sem);
     }
+    //printk(KERN_EMERG "end of scull_open\n");
     return 0;
 }
 
@@ -107,7 +116,10 @@ ssize_t scull_read(struct file *filp, char __user *buf, size_t count,
     struct scull_dev *dev = filp->private_data;
     int quantum = dev->quantum;
     int s_pos, q_pos;
+    int j;
     ssize_t retval = 0;
+    
+    //printk(KERN_EMERG "start of scull_read\n,,,, %d", i);
 
     if (down_interruptible(&dev->sem))
         return -ERESTARTSYS;
@@ -126,15 +138,27 @@ ssize_t scull_read(struct file *filp, char __user *buf, size_t count,
     if (count > quantum - q_pos)
         count = quantum - q_pos;
 
+	for (j = 0; j < result_index; j++) {
+		printk(KERN_EMERG "guess %d = %s\n", j + 1, result[j]);
+		if (copy_to_user(buf, result[j], 16)) {
+			retval = -EFAULT;
+			printk(KERN_EMERG "yaraklara geldik");
+			goto out;
+		}
+	}
+
     if (copy_to_user(buf, dev->data[s_pos] + q_pos, count)) {
         retval = -EFAULT;
         goto out;
     }
+    //printk(KERN_EMERG "scull_read= s_pos: %d,  q_pos: %d\n", s_pos, q_pos);
+	//printk(KERN_EMERG "scull_read= echo: %s\n", dev->data[s_pos] + q_pos);
     *f_pos += count;
     retval = count;
 
   out:
     up(&dev->sem);
+    //printk(KERN_EMERG "end of scull_read\n");
     return retval;
 }
 
@@ -145,7 +169,13 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
     struct scull_dev *dev = filp->private_data;
     int quantum = dev->quantum, qset = dev->qset;
     int s_pos, q_pos;
+    // int in_place = 0, out_place = 0;
+    char in_place = '0';
+    char out_place = '0';
+    int x, y;
     ssize_t retval = -ENOMEM;
+    
+    //printk(KERN_EMERG "start of scull_write\n");
 
     if (down_interruptible(&dev->sem))
         return -ERESTARTSYS;
@@ -177,15 +207,89 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
         retval = -EFAULT;
         goto out;
     }
+    
+    for (x = 0; x < 4; x++) {
+		for (y = 0; y < 4; y++) {
+			if ((dev->data[s_pos] + q_pos)[x] == mmind_number[y]) {
+				if (x == y) {
+					if (in_place == '0')
+						in_place = '1';
+					else if (in_place == '1')
+						in_place = '2';
+					else if (in_place == '2')
+						in_place = '3';
+					else if (in_place == '3')
+						in_place = '4';
+				}
+				else {
+					if (out_place == '0')
+						out_place = '1';
+					else if (out_place == '1')
+						out_place = '2';
+					else if (out_place == '2')
+						out_place = '3';
+					else if (out_place == '3')
+						out_place = '4';
+				}
+			}
+		}
+	}
+    
+    result[result_index][0] = (dev->data[s_pos] + q_pos)[0];
+    result[result_index][1] = (dev->data[s_pos] + q_pos)[1];
+    result[result_index][2] = (dev->data[s_pos] + q_pos)[2];
+    result[result_index][3] = (dev->data[s_pos] + q_pos)[3];
+    // strcpy(result[result_index][0], dev->data[s_pos] + q_pos);
+    result[result_index][4] = ' ';
+    result[result_index][5] = in_place;
+    result[result_index][6] = '+';
+    result[result_index][7] = ' ';
+    result[result_index][8] = out_place;
+    result[result_index][9] = '-';
+    result[result_index][10] = ' ';
+    if (result_index < 9) {
+		int guess_count = result_index + 1;
+		result[result_index][11] = '0';
+		result[result_index][12] = '0';
+		result[result_index][13] = '0';
+		result[result_index][14] = guess_count + '0';
+	}
+	else if (result_index < 99) {
+		int guess_count = result_index + 1;
+		result[result_index][11] = '0';
+		result[result_index][12] = '0';
+		result[result_index][13] = guess_count / 10 + '0';
+		result[result_index][14] = guess_count % 10 + '0';
+	}
+	else if (result_index < 999) {
+		int guess_count = result_index + 1;
+		result[result_index][11] = '0';
+		result[result_index][12] = guess_count / 100 + '0';
+		result[result_index][13] = guess_count / 10 % 10 + '0';
+		result[result_index][14] = guess_count % 10 + '0';
+	}
+	else {
+		int guess_count = result_index + 1;
+		result[result_index][11] = guess_count / 1000 + '0';
+		result[result_index][12] = guess_count / 100 % 10 + '0';
+		result[result_index][13] = guess_count / 10 % 10 + '0';
+		result[result_index][14] = guess_count % 10 + '0';
+	}
+	result[result_index][15] = '\n';
+    result_index++;
+    
     *f_pos += count;
     retval = count;
-
+    
+    //printk(KERN_EMERG "scull_write= s_pos: %d, q_pos: %d\n", s_pos, q_pos);
+    //printk(KERN_EMERG "scull_write= echo: %s\n", dev->data[s_pos] + q_pos);
     /* update the size */
     if (dev->size < *f_pos)
         dev->size = *f_pos;
 
   out:
     up(&dev->sem);
+    //printk(KERN_EMERG "end of scull_write");
     return retval;
 }
 
@@ -341,6 +445,7 @@ void scull_cleanup_module(void)
     int i;
     dev_t devno = MKDEV(scull_major, scull_minor);
 
+	// printk(KERN_EMERG "start of cleanup module\n");
     if (scull_devices) {
         for (i = 0; i < scull_nr_devs; i++) {
             scull_trim(scull_devices + i);
@@ -350,6 +455,7 @@ void scull_cleanup_module(void)
     }
 
     unregister_chrdev_region(devno, scull_nr_devs);
+    // printk(KERN_EMERG "end of cleanup module\n");
 }
 
 
