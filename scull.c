@@ -163,6 +163,8 @@ ssize_t scull_read(struct file *filp, char __user *buf, size_t count,
 }
 
 
+void fill_result(struct scull_dev* dev, char* result, int s_pos, int q_pos, char in_place, char out_place);
+
 ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
                     loff_t *f_pos)
 {
@@ -235,47 +237,7 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
 		}
 	}
     
-    result[result_index][0] = (dev->data[s_pos] + q_pos)[0];
-    result[result_index][1] = (dev->data[s_pos] + q_pos)[1];
-    result[result_index][2] = (dev->data[s_pos] + q_pos)[2];
-    result[result_index][3] = (dev->data[s_pos] + q_pos)[3];
-    // strcpy(result[result_index][0], dev->data[s_pos] + q_pos);
-    result[result_index][4] = ' ';
-    result[result_index][5] = in_place;
-    result[result_index][6] = '+';
-    result[result_index][7] = ' ';
-    result[result_index][8] = out_place;
-    result[result_index][9] = '-';
-    result[result_index][10] = ' ';
-    if (result_index < 9) {
-		int guess_count = result_index + 1;
-		result[result_index][11] = '0';
-		result[result_index][12] = '0';
-		result[result_index][13] = '0';
-		result[result_index][14] = guess_count + '0';
-	}
-	else if (result_index < 99) {
-		int guess_count = result_index + 1;
-		result[result_index][11] = '0';
-		result[result_index][12] = '0';
-		result[result_index][13] = guess_count / 10 + '0';
-		result[result_index][14] = guess_count % 10 + '0';
-	}
-	else if (result_index < 999) {
-		int guess_count = result_index + 1;
-		result[result_index][11] = '0';
-		result[result_index][12] = guess_count / 100 + '0';
-		result[result_index][13] = guess_count / 10 % 10 + '0';
-		result[result_index][14] = guess_count % 10 + '0';
-	}
-	else {
-		int guess_count = result_index + 1;
-		result[result_index][11] = guess_count / 1000 + '0';
-		result[result_index][12] = guess_count / 100 % 10 + '0';
-		result[result_index][13] = guess_count / 10 % 10 + '0';
-		result[result_index][14] = guess_count % 10 + '0';
-	}
-	result[result_index][15] = '\n';
+	fill_result(dev, result[result_index],s_pos, q_pos, in_place, out_place);
     result_index++;
     
     *f_pos += count;
@@ -291,6 +253,51 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
     up(&dev->sem);
     //printk(KERN_EMERG "end of scull_write");
     return retval;
+}
+
+void fill_result(struct scull_dev* dev, char *result, int s_pos, int q_pos, char in_place, char out_place)
+{
+	result[0] = (dev->data[s_pos] + q_pos)[0];
+	result[1] = (dev->data[s_pos] + q_pos)[1];
+	result[2] = (dev->data[s_pos] + q_pos)[2];
+	result[3] = (dev->data[s_pos] + q_pos)[3];
+	// strcpy(result[result_index][0], dev->data[s_pos] + q_pos);
+	result[4] = ' ';
+	result[5] = in_place;
+	result[6] = '+';
+	result[7] = ' ';
+	result[8] = out_place;
+	result[9] = '-';
+	result[10] = ' ';
+	if (result_index < 9) {
+		int guess_count = result_index + 1;
+		result[11] = '0';
+		result[12] = '0';
+		result[13] = '0';
+		result[14] = guess_count + '0';
+	}
+	else if (result_index < 99) {
+		int guess_count = result_index + 1;
+		result[11] = '0';
+		result[12] = '0';
+		result[13] = guess_count / 10 + '0';
+		result[14] = guess_count % 10 + '0';
+	}
+	else if (result_index < 999) {
+		int guess_count = result_index + 1;
+		result[11] = '0';
+		result[12] = guess_count / 100 + '0';
+		result[13] = guess_count / 10 % 10 + '0';
+		result[14] = guess_count % 10 + '0';
+	}
+	else {
+		int guess_count = result_index + 1;
+		result[11] = guess_count / 1000 + '0';
+		result[12] = guess_count / 100 % 10 + '0';
+		result[13] = guess_count / 10 % 10 + '0';
+		result[14] = guess_count % 10 + '0';
+	}
+	result[15] = '\n';
 }
 
 long scull_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
