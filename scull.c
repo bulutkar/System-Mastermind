@@ -63,7 +63,8 @@ char *mmind_number = "4283";
 module_param(mmind_number, charp, 0);
 
 int result_index = 0;
-char result[256][16];
+int s_pos_prev = 0;
+int q_pos_prev = 0;
 
 int scull_trim(struct scull_dev *dev)
 {
@@ -96,7 +97,6 @@ int scull_open(struct inode *inode, struct file *filp)
     if ((filp->f_flags & O_ACCMODE) == O_WRONLY) {
         if (down_interruptible(&dev->sem))
             return -ERESTARTSYS;
-        scull_trim(dev);
         up(&dev->sem);
     }
     //printk(KERN_EMERG "end of scull_open\n");
@@ -119,7 +119,7 @@ ssize_t scull_read(struct file *filp, char __user *buf, size_t count,
     int j;
     ssize_t retval = 0;
     
-    //printk(KERN_EMERG "start of scull_read\n,,,, %d", i);
+    printk(KERN_EMERG "start of scull_read\n");
 
     if (down_interruptible(&dev->sem))
         return -ERESTARTSYS;
@@ -131,6 +131,10 @@ ssize_t scull_read(struct file *filp, char __user *buf, size_t count,
     s_pos = (long) *f_pos / quantum;
     q_pos = (long) *f_pos % quantum;
 
+	s_pos = (long)*f_pos / quantum;
+	q_pos = (long)*f_pos % quantum;
+	//printk(KERN_EMERG "scull_read= s_pos: %d,  q_pos: %d\n", s_pos, q_pos);
+
     if (dev->data == NULL || ! dev->data[s_pos])
         goto out;
 
@@ -138,32 +142,22 @@ ssize_t scull_read(struct file *filp, char __user *buf, size_t count,
     if (count > quantum - q_pos)
         count = quantum - q_pos;
 
-	for (j = 0; j < result_index; j++) {
-		printk(KERN_EMERG "guess %d = %s\n", j + 1, result[j]);
-		if (copy_to_user(buf, result[j], 16)) {
-			retval = -EFAULT;
-			printk(KERN_EMERG "yaraklara geldik");
-			goto out;
-		}
-	}
 
     if (copy_to_user(buf, dev->data[s_pos] + q_pos, count)) {
         retval = -EFAULT;
         goto out;
     }
-    //printk(KERN_EMERG "scull_read= s_pos: %d,  q_pos: %d\n", s_pos, q_pos);
-	//printk(KERN_EMERG "scull_read= echo: %s\n", dev->data[s_pos] + q_pos);
     *f_pos += count;
     retval = count;
 
   out:
     up(&dev->sem);
-    //printk(KERN_EMERG "end of scull_read\n");
+    printk(KERN_EMERG "end of scull_read\n");
     return retval;
 }
 
 
-void fill_result(struct scull_dev* dev, char* result, int s_pos, int q_pos, char in_place, char out_place);
+void fill_result(struct scull_dev* dev, int s_pos, int q_pos, char in_place, char out_place);
 
 ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
                     loff_t *f_pos)
@@ -177,7 +171,7 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
     int x, y;
     ssize_t retval = -ENOMEM;
     
-    //printk(KERN_EMERG "start of scull_write\n");
+    printk(KERN_EMERG "start of scull_write\n");
 
     if (down_interruptible(&dev->sem))
         return -ERESTARTSYS;
@@ -189,6 +183,12 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
 
     s_pos = (long) *f_pos / quantum;
     q_pos = (long) *f_pos % quantum;
+	s_pos += s_pos_prev;
+	q_pos += q_pos_prev;
+	if (q_pos >= 4000) {
+		s_pos += 1;
+		q_pos %= 4000;
+	}
 
     if (!dev->data) {
         dev->data = kmalloc(qset * sizeof(char *), GFP_KERNEL);
@@ -243,61 +243,58 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
     *f_pos += count;
     retval = count;
     
-    //printk(KERN_EMERG "scull_write= s_pos: %d, q_pos: %d\n", s_pos, q_pos);
-    //printk(KERN_EMERG "scull_write= echo: %s\n", dev->data[s_pos] + q_pos);
     /* update the size */
-    if (dev->size < *f_pos)
-        dev->size = *f_pos;
+	dev->size += 16;
+	q_pos += 16;
+	if (q_pos >= 4000) {
+		s_pos += 1;
+		q_pos %= 4000;
+	}
 
   out:
     up(&dev->sem);
-    //printk(KERN_EMERG "end of scull_write");
+    printk(KERN_EMERG "end of scull_write\n");
     return retval;
 }
 
-void fill_result(struct scull_dev* dev, char *result, int s_pos, int q_pos, char in_place, char out_place)
+void fill_result(struct scull_dev* dev, int s_pos, int q_pos, char in_place, char out_place)
 {
-	result[0] = (dev->data[s_pos] + q_pos)[0];
-	result[1] = (dev->data[s_pos] + q_pos)[1];
-	result[2] = (dev->data[s_pos] + q_pos)[2];
-	result[3] = (dev->data[s_pos] + q_pos)[3];
-	// strcpy(result[result_index][0], dev->data[s_pos] + q_pos);
-	result[4] = ' ';
-	result[5] = in_place;
-	result[6] = '+';
-	result[7] = ' ';
-	result[8] = out_place;
-	result[9] = '-';
-	result[10] = ' ';
+	(dev->data[s_pos] + q_pos)[4] = ' ';
+	(dev->data[s_pos] + q_pos)[5] = in_place;
+	(dev->data[s_pos] + q_pos)[6] = '+';
+	(dev->data[s_pos] + q_pos)[7] = ' ';
+	(dev->data[s_pos] + q_pos)[8] = out_place;
+	(dev->data[s_pos] + q_pos)[9] = '-';
+	(dev->data[s_pos] + q_pos)[10] = ' ';
 	if (result_index < 9) {
 		int guess_count = result_index + 1;
-		result[11] = '0';
-		result[12] = '0';
-		result[13] = '0';
-		result[14] = guess_count + '0';
+		(dev->data[s_pos] + q_pos)[11] = '0';
+		(dev->data[s_pos] + q_pos)[12] = '0';
+		(dev->data[s_pos] + q_pos)[13] = '0';
+		(dev->data[s_pos] + q_pos)[14] = guess_count + '0';
 	}
 	else if (result_index < 99) {
 		int guess_count = result_index + 1;
-		result[11] = '0';
-		result[12] = '0';
-		result[13] = guess_count / 10 + '0';
-		result[14] = guess_count % 10 + '0';
+		(dev->data[s_pos] + q_pos)[11] = '0';
+		(dev->data[s_pos] + q_pos)[12] = '0';
+		(dev->data[s_pos] + q_pos)[13] = guess_count / 10 + '0';
+		(dev->data[s_pos] + q_pos)[14] = guess_count % 10 + '0';
 	}
 	else if (result_index < 999) {
 		int guess_count = result_index + 1;
-		result[11] = '0';
-		result[12] = guess_count / 100 + '0';
-		result[13] = guess_count / 10 % 10 + '0';
-		result[14] = guess_count % 10 + '0';
+		(dev->data[s_pos] + q_pos)[11] = '0';
+		(dev->data[s_pos] + q_pos)[12] = guess_count / 100 + '0';
+		(dev->data[s_pos] + q_pos)[13] = guess_count / 10 % 10 + '0';
+		(dev->data[s_pos] + q_pos)[14] = guess_count % 10 + '0';
 	}
 	else {
 		int guess_count = result_index + 1;
-		result[11] = guess_count / 1000 + '0';
-		result[12] = guess_count / 100 % 10 + '0';
-		result[13] = guess_count / 10 % 10 + '0';
-		result[14] = guess_count % 10 + '0';
+		(dev->data[s_pos] + q_pos)[11] = guess_count / 1000 + '0';
+		(dev->data[s_pos] + q_pos)[12] = guess_count / 100 % 10 + '0';
+		(dev->data[s_pos] + q_pos)[13] = guess_count / 10 % 10 + '0';
+		(dev->data[s_pos] + q_pos)[14] = guess_count % 10 + '0';
 	}
-	result[15] = '\n';
+	(dev->data[s_pos] + q_pos)[15] = '\n';
 }
 
 long scull_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
