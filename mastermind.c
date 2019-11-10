@@ -315,7 +315,7 @@ void fill_result(struct scull_dev* dev, int s_pos, int q_pos, char in_place, cha
 
 long scull_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
-
+	int new_mmind_number ; 
 	int err = 0, tmp;
 	int retval = 0;
 
