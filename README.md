@@ -6,8 +6,8 @@ How to use:
 - sudo su
 - insmod ./mastermind.ko mmind_number="1234" mmind_max_guesses=25 (mmind_max_guesses is optional, default = 10)
 - mknod /dev/mastermind0 c 250 0 (assuming major number is 250, can be checked with "grep mastermind /proc/devices")
-- echo "4321" > /dev/mastermind0  (write)
-- cat /dev/mastermind0            (read)
+- echo "4321" > /dev/mastermind0  (guess the secret number)
+- cat /dev/mastermind0            (read guess history)
 
 IOCTL Test Files:
 3 test files for 3 ioctl commands (MMIND_REMAINING, MMIND_ENDGAME, MMIND_NEWGAME.
