@@ -158,7 +158,7 @@ ssize_t scull_read(struct file *filp, char __user *buf, size_t count,
 
   out:
     up(&dev->sem);
-    printk(KERN_EMERG "end of scull_read\n");
+    // printk(KERN_EMERG "end of scull_read\n");
     return retval;
 }
 
@@ -177,7 +177,7 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
     int x, y;
     ssize_t retval = -ENOMEM;
     
-    printk(KERN_EMERG "start of scull_write\n");
+    // printk(KERN_EMERG "start of scull_write\n");
 
     if (down_interruptible(&dev->sem))
         return -ERESTARTSYS;
@@ -222,7 +222,7 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
         goto out;
     }
  
-	printk(KERN_ALERT "Guess limit: %d.\n", mmind_max_guesses);
+	// printk(KERN_ALERT "Guess limit: %d.\n", mmind_max_guesses);
 		
     for (x = 0; x < 4; x++) {
 		for (y = 0; y < 4; y++) {
@@ -269,7 +269,7 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
 
   out:
     up(&dev->sem);
-    printk(KERN_EMERG "end of scull_write\n");
+    // printk(KERN_EMERG "end of scull_write\n");
     return retval;
 }
 
