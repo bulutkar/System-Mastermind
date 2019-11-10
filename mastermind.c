@@ -24,7 +24,7 @@
 #endif
 
 
-#include "scull_ioctl.h"
+#include "mastermind_ioctl.h"
 
 #define SCULL_MAJOR 0
 #define SCULL_NR_DEVS 4
@@ -187,6 +187,12 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
         goto out;
     }
 
+	if (result_index + 1 > mmind_max_guesses) {
+		printk(KERN_ALERT "Sorry. Guess limit has been reached.Limit is %d\n", mmind_max_guesses);
+		retval = -EDQUOT;
+		goto out;
+	}
+
     s_pos = (long) *f_pos / quantum;
     q_pos = (long) *f_pos % quantum;
 	s_pos += s_pos_prev;
@@ -215,12 +221,7 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
         retval = -EFAULT;
         goto out;
     }
-    
-        if(result_index+1>mmind_max_guesses){
-		printk(KERN_ALERT "Sorry. Guess limit has been reached.Limit is %d\n", mmind_max_guesses);
-		retval = -EDQUOT;
-        goto out;
-		}
+ 
 	printk(KERN_ALERT "Guess limit: %d.\n", mmind_max_guesses);
 		
     for (x = 0; x < 4; x++) {
@@ -263,6 +264,8 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
 		s_pos += 1;
 		q_pos %= 4000;
 	}
+	q_pos_prev = q_pos;
+	s_pos_prev = s_pos;
 
   out:
     up(&dev->sem);
