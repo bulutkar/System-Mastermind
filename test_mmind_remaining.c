@@ -1,3 +1,10 @@
+/*
+** Group ID: 12
+** Bulut KARABIYIK - 150150048
+** Alperen METINTAS - 150150025
+** Zeynep YETISTIREN - 150150020
+*/
+
 #include <stdio.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>

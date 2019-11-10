@@ -1,3 +1,10 @@
+/*
+** Group ID: 12
+** Bulut KARABIYIK - 150150048
+** Alperen METINTAS - 150150025
+** Zeynep YETISTIREN - 150150020
+*/
+
 #ifndef __SCULL_H
 #define __SCULL_H
 
