@@ -119,7 +119,7 @@ ssize_t scull_read(struct file *filp, char __user *buf, size_t count,
     int j;
     ssize_t retval = 0;
     
-    printk(KERN_EMERG "start of scull_read\n");
+    //printk(KERN_EMERG "start of scull_read\n");
 
     if (down_interruptible(&dev->sem))
         return -ERESTARTSYS;
