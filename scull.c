@@ -37,15 +37,20 @@ int scull_minor = 0;
 int scull_nr_devs = SCULL_NR_DEVS;
 int scull_quantum = SCULL_QUANTUM;
 int scull_qset = SCULL_QSET;
-
 int mmind_max_guesses = MAX_GUESS_LIMIT;
-module_param(mmind_max_guesses, int, S_IRUGO); 
+
+int result_index = 0;
+int s_pos_prev = 0;
+int q_pos_prev = 0;
+char *mmind_number = "4283";
 
 module_param(scull_major, int, S_IRUGO);
 module_param(scull_minor, int, S_IRUGO);
 module_param(scull_nr_devs, int, S_IRUGO);
 module_param(scull_quantum, int, S_IRUGO);
 module_param(scull_qset, int, S_IRUGO);
+module_param(mmind_max_guesses, int, 0); 
+module_param(mmind_number, charp, 0);
 
 MODULE_AUTHOR("Alessandro Rubini, Jonathan Corbet");
 MODULE_LICENSE("Dual BSD/GPL");
@@ -60,15 +65,6 @@ struct scull_dev {
 };
 
 struct scull_dev *scull_devices;
-
-/*char mmind_number[4];
-module_param_array(mmind_number, char, NULL, 0);*/
-char *mmind_number = "4283";
-module_param(mmind_number, charp, 0);
-
-int result_index = 0;
-int s_pos_prev = 0;
-int q_pos_prev = 0;
 
 int scull_trim(struct scull_dev *dev)
 {
@@ -414,6 +410,13 @@ long scull_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			return -EPERM;
 		mmind_max_guesses = arg;
 		break;
+
+      case MMIND_REMAINING:
+          if (! capable (CAP_SYS_ADMIN))
+			return -EPERM;
+            retval = __put_user(mmind_max_guesses - result_index, (int __user *)arg);
+            break;
+        
 
 	  default:  /* redundant, as cmd was checked against MAXNR */
 		return -ENOTTY;
