@@ -6,7 +6,7 @@
 
 int main() {
     int fd;
-    int new_secret_number = 5566;
+    int new_secret_number;
 
     fd = open("/dev/mastermind0", O_RDWR);
 
@@ -16,6 +16,8 @@ int main() {
     }
 
     printf("Calling MMIND_NEWGAME ioctl command.\n");
+    printf("Plase enter new secret number: ");
+    scanf("%d", &new_secret_number);
     ioctl(fd, MMIND_NEWGAME, &new_secret_number);
     printf("Secret number changed. New game started.\n");
 
