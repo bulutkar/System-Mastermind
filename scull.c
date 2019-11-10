@@ -30,12 +30,16 @@
 #define SCULL_NR_DEVS 4
 #define SCULL_QUANTUM 4000
 #define SCULL_QSET 1000
+#define MAX_GUESS_LIMIT 10
 
 int scull_major = SCULL_MAJOR;
 int scull_minor = 0;
 int scull_nr_devs = SCULL_NR_DEVS;
 int scull_quantum = SCULL_QUANTUM;
 int scull_qset = SCULL_QSET;
+
+int mmind_max_guesses = MAX_GUESS_LIMIT;
+module_param(mmind_max_guesses, int, S_IRUGO); 
 
 module_param(scull_major, int, S_IRUGO);
 module_param(scull_minor, int, S_IRUGO);
@@ -210,6 +214,13 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
         goto out;
     }
     
+        if(result_index+1>mmind_max_guesses){
+		printk(KERN_ALERT "Sorry. Guess limit has been reached.Limit is %d\n", mmind_max_guesses);
+		retval = -EDQUOT;
+        goto out;
+		}
+	printk(KERN_ALERT "Guess limit: %d.\n", mmind_max_guesses);
+		
     for (x = 0; x < 4; x++) {
 		for (y = 0; y < 4; y++) {
 			if ((dev->data[s_pos] + q_pos)[x] == mmind_number[y]) {
@@ -237,7 +248,7 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
 		}
 	}
     
-	fill_result(dev, result[result_index],s_pos, q_pos, in_place, out_place);
+	fill_result(dev,s_pos, q_pos, in_place, out_place);
     result_index++;
     
     *f_pos += count;
@@ -397,6 +408,12 @@ long scull_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		tmp = scull_qset;
 		scull_qset = arg;
 		return tmp;
+	
+	  case SET_GUESS_LIMIT:
+	     if (! capable (CAP_SYS_ADMIN))
+			return -EPERM;
+		mmind_max_guesses = arg;
+		break;
 
 	  default:  /* redundant, as cmd was checked against MAXNR */
 		return -ENOTTY;
