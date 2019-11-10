@@ -1,9 +1,9 @@
 # System-Mastermind
 
-** Group ID: 12
-** Bulut KARABIYIK - 150150048
-** Alperen METINTAS - 150150025
-** Zeynep YETISTIREN - 150150020
+- Group ID: 12
+- Bulut KARABIYIK - 150150048
+- Alperen METINTAS - 150150025
+- Zeynep YETISTIREN - 150150020
 
 It is character device driver module that will be play the board game "Master Mind".
 
