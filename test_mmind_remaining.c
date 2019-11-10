@@ -2,16 +2,16 @@
 #include <sys/ioctl.h>
 #include <fcntl.h>
 
-#define MMIND_REMAINING _IOR('k', 14, int)
+#define MMIND_REMAINING _IOR('k', 13, int)
 
 int main() {
     int fd;
     int remaining_guesses;
 
-    fd = open("/dev/scull0", O_RDWR);
+    fd = open("/dev/mastermind0", O_RDWR);
 
     if (fd < 0) {
-        printf("CANNOT OPEN");  
+        printf("CANNOT OPEN\n");  
         return -1;
     }
 

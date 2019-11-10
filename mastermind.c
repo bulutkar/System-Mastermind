@@ -413,12 +413,6 @@ long scull_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		    tmp = scull_qset;
 		    scull_qset = arg;
 		    return tmp;
-	
-	    case SET_GUESS_LIMIT:
-	        if (! capable (CAP_SYS_ADMIN))
-			    return -EPERM;
-		    mmind_max_guesses = arg;
-		    break;
 
         case MMIND_REMAINING:
             if (! capable (CAP_SYS_ADMIN))
@@ -431,6 +425,14 @@ long scull_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		        return -EPERM;
             retval = scull_endgame(scull_devices);
             break;
+
+        case MMIND_NEWGAME:
+            if (! capable (CAP_SYS_ADMIN))
+		        return -EPERM;
+            scull_endgame(scull_devices);
+            retval = __get_user(new_mmind_number, (int __user *)arg);
+            sprintf(mmind_number, "%d", new_mmind_number);
+
 
 	    default:  /* redundant, as cmd was checked against MAXNR */
 		    return -ENOTTY;
@@ -506,10 +508,10 @@ int scull_init_module(void)
 
     if (scull_major) {
         devno = MKDEV(scull_major, scull_minor);
-        result = register_chrdev_region(devno, scull_nr_devs, "scull");
+        result = register_chrdev_region(devno, scull_nr_devs, "mastermind");
     } else {
         result = alloc_chrdev_region(&devno, scull_minor, scull_nr_devs,
-                                     "scull");
+                                     "mastermind");
         scull_major = MAJOR(devno);
     }
     if (result < 0) {
