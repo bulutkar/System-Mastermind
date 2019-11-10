@@ -52,7 +52,7 @@ module_param(scull_qset, int, S_IRUGO);
 module_param(mmind_max_guesses, int, 0); 
 module_param(mmind_number, charp, 0);
 
-MODULE_AUTHOR("Alessandro Rubini, Jonathan Corbet");
+MODULE_AUTHOR("Bulut Karabiyik, Alperen Metintas, Zeynep Yetistiren");
 MODULE_LICENSE("Dual BSD/GPL");
 
 struct scull_dev {
@@ -89,6 +89,7 @@ int scull_endgame(struct scull_dev *dev) {
     result_index = 0;
     s_pos_prev = 0;
     q_pos_prev = 0;
+	return 0;
 }
 
 int scull_open(struct inode *inode, struct file *filp)
